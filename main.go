@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -85,14 +86,39 @@ func updateArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func enforceJSONHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// contentType := r.Header().Get("Content-Type")
+		contentType := r.Header.Get("Content-Type")
+
+		if contentType != "" {
+			mt, _, err := mime.ParseMediaType(contentType)
+
+			if err != nil {
+				http.Error(w, "Malformed Content-Type header", http.StatusBadRequest)
+				return
+			}
+
+			if mt != "application/json" {
+				http.Error(w, "Content-Type header must be application/json", http.StatusUnsupportedMediaType)
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func handleRequests() {
 	m := mux.NewRouter().StrictSlash(true)
 
+	createArticleHandler := http.HandlerFunc(createNewArticle)
+	updateArticleHandler := http.HandlerFunc(updateArticle)
 	m.HandleFunc("/", homepage)
 	m.HandleFunc("/articles", returnAllArticles)
-	m.HandleFunc("/article", createNewArticle).Methods("POST")
+	m.Handle("/article", enforceJSONHandler(createArticleHandler)).Methods("POST")
 	m.HandleFunc("/article/{id}", deleteArticle).Methods("DELETE")
-	m.HandleFunc("/article/{id}", updateArticle).Methods("PUT")
+	m.Handle("/article/{id}", enforceJSONHandler(updateArticleHandler)).Methods("PUT")
 	m.HandleFunc("/article/{id}", returnArticleById).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8082", m))
 }
