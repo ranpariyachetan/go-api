@@ -67,6 +67,24 @@ func deleteArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func updateArticle(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	id := vars["id"]
+
+	var article Article
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	json.Unmarshal(reqBody, &article)
+	for index, artcl := range Articles {
+		if artcl.Id == id {
+			Articles[index].Title = article.Title
+			Articles[index].Desc = article.Desc
+			Articles[index].Content = article.Content
+		}
+		break
+	}
+}
+
 func handleRequests() {
 	m := mux.NewRouter().StrictSlash(true)
 
@@ -74,6 +92,7 @@ func handleRequests() {
 	m.HandleFunc("/articles", returnAllArticles)
 	m.HandleFunc("/article", createNewArticle).Methods("POST")
 	m.HandleFunc("/article/{id}", deleteArticle).Methods("DELETE")
+	m.HandleFunc("/article/{id}", updateArticle).Methods("PUT")
 	m.HandleFunc("/article/{id}", returnArticleById).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8082", m))
 }
