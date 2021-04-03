@@ -10,6 +10,7 @@ import (
 )
 
 type Article struct {
+	Id      string `json:"Id"`
 	Title   string `json:"Title"`
 	Desc    string `json:"desc"`
 	Content string `json:"content"`
@@ -27,19 +28,33 @@ func returnAllArticles(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Articles)
 }
 
+func returnArticleById(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	for _, article := range Articles {
+		if article.Id == id {
+			json.NewEncoder(w).Encode(article)
+			break
+		}
+	}
+}
+
 func handleRequests() {
 	m := mux.NewRouter().StrictSlash(true)
 
 	m.HandleFunc("/", homepage)
 	m.HandleFunc("/articles", returnAllArticles)
+	m.HandleFunc("/article/{id}", returnArticleById)
 	log.Fatal(http.ListenAndServe(":8082", m))
 }
 
 func main() {
 	Articles = []Article{
-		Article{Title: "Hello1", Desc: "Hello Article 1", Content: "Hello Article 1 Content"},
-		Article{Title: "Hello2", Desc: "Hello Article 2", Content: "Hello Article 2 Content"},
+		Article{Id: "1", Title: "Hello1", Desc: "Hello Article 1", Content: "Hello Article 1 Content"},
+		Article{Id: "2", Title: "Hello2", Desc: "Hello Article 2", Content: "Hello Article 2 Content"},
 	}
 	handleRequests()
-	//	fmt.Println("Hello world")
 }
