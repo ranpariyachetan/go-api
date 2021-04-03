@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -42,12 +43,38 @@ func returnArticleById(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func createNewArticle(w http.ResponseWriter, r *http.Request) {
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var article Article
+
+	json.Unmarshal(reqBody, &article)
+
+	Articles = append(Articles, article)
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(article)
+}
+
+func deleteArticle(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	id := vars["id"]
+
+	for index, article := range Articles {
+		if article.Id == id {
+			Articles = append(Articles[:index], Articles[index+1:]...)
+		}
+	}
+}
+
 func handleRequests() {
 	m := mux.NewRouter().StrictSlash(true)
 
 	m.HandleFunc("/", homepage)
 	m.HandleFunc("/articles", returnAllArticles)
-	m.HandleFunc("/article/{id}", returnArticleById)
+	m.HandleFunc("/article", createNewArticle).Methods("POST")
+	m.HandleFunc("/article/{id}", deleteArticle).Methods("DELETE")
+	m.HandleFunc("/article/{id}", returnArticleById).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8082", m))
 }
 
